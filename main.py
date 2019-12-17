@@ -1,4 +1,5 @@
 import gym
+import envs
 import math
 import random
 import numpy as np
@@ -62,6 +63,7 @@ class DQN(nn.Module):
         self.conv3 = nn.Conv2d(32, 32, kernel_size=5, stride=2)
         self.bn3 = nn.BatchNorm2d(32)
 
+
         # Number of Linear input connections depends on output of conv2d layers
         # and therefore the input image size, so compute it.
         def conv2d_size_out(size, kernel_size = 5, stride = 2):
@@ -88,9 +90,10 @@ def get_cart_location(screen_width):
     world_width = env.x_threshold * 2
     scale = screen_width / world_width
     return int(env.state[0] * scale + screen_width / 2.0)  # MIDDLE OF CART
+'''
 
-def get_screen():
-    # Returned screen requested by gym is 400x600x3, but is sometimes larger
+def get_screen(raw_state):
+    '''# Returned screen requested by gym is 400x600x3, but is sometimes larger
     # such as 800x1200x3. Transpose it into torch order (CHW).
     screen = env.render(mode='rgb_array').transpose((2, 0, 1))
     # Cart is in the lower half, so strip off the top and bottom of the screen
@@ -108,12 +111,13 @@ def get_screen():
     # Strip off the edges, so that we have a square image centered on a cart
     screen = screen[:, :, slice_range]
     # Convert to float, rescale, convert to torch tensor
-    # (this doesn't require a copy)
+    # (this doesn't require a copy)'''
+    screen = np.reshape(raw_state, (40,40,3))
     screen = np.ascontiguousarray(screen, dtype=np.float32) / 255
     screen = torch.from_numpy(screen)
     # Resize, and add a batch dimension (BCHW)
     return resize(screen).unsqueeze(0).to(device)
-'''
+
 
 env.reset()
 '''plt.figure()
@@ -133,14 +137,15 @@ TARGET_UPDATE = 10
 # Get screen size so that we can initialize layers correctly based on shape
 # returned from AI gym. Typical dimensions at this point are close to 3x40x90
 # which is the result of a clamped and down-scaled render buffer in get_screen()
-#init_screen = get_screen()
-#_, _, screen_height, screen_width = init_screen.shape
+init_screen = env._next_observation()
+init_screen = get_screen(init_screen)
+_, _, screen_height, screen_width = init_screen.shape
 
 # Get number of actions from gym action space
 n_actions = env.action_space.n
 
-policy_net = DQN(40, 40, n_actions).to(device)
-target_net = DQN(40, 40, n_actions).to(device)
+policy_net = DQN(screen_height, screen_width, n_actions).to(device)
+target_net = DQN(screen_height, screen_width, n_actions).to(device)
 target_net.load_state_dict(policy_net.state_dict())
 target_net.eval()
 
@@ -231,11 +236,12 @@ for i_episode in range(num_episodes):
     state = env.reset()
     #last_screen = get_screen()
     #current_screen = get_screen()
-    #state = current_screen - last_screen
+    state = get_screen(state)
     for t in count():
         # Select and perform an action
         action = select_action(state)
         newstate, reward, done, _ = env.step(action)
+        newstate=get_screen(newstate)
         reward = torch.tensor([reward], device=device)
 
         # Store the transition in memory

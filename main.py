@@ -241,7 +241,7 @@ for i_episode in range(num_episodes):
         # Select and perform an action
         action = select_action(state)
         newstate, reward, done, _ = env.step(action)
-        newstate=get_screen(newstate)
+        newstate = get_screen(newstate)
         reward = torch.tensor([reward], device=device)
 
         # Store the transition in memory

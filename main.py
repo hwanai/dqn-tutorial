@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from collections import namedtuple
 from itertools import count
 from PIL import Image
+import time
 
 import torch
 import torch.nn as nn
@@ -56,11 +57,11 @@ class DQN(nn.Module):
 
     def __init__(self, h, w, outputs):
         super(DQN, self).__init__()
-        self.conv1 = nn.Conv2d(3, 16, kernel_size=5, stride=2)
+        self.conv1 = nn.Conv2d(1, 16, kernel_size=2, stride=1)
         self.bn1 = nn.BatchNorm2d(16)
-        self.conv2 = nn.Conv2d(16, 32, kernel_size=5, stride=2)
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=2, stride=1)
         self.bn2 = nn.BatchNorm2d(32)
-        self.conv3 = nn.Conv2d(32, 32, kernel_size=5, stride=2)
+        self.conv3 = nn.Conv2d(32, 32, kernel_size=2, stride=1)
         self.bn3 = nn.BatchNorm2d(32)
 
 
@@ -82,7 +83,7 @@ class DQN(nn.Module):
         return self.head(x.view(x.size(0), -1))
 
 resize = T.Compose([T.ToPILImage(),
-                    T.Resize(40, interpolation=Image.CUBIC),
+                    T.Resize(6, interpolation=Image.CUBIC),
                     T.ToTensor()])
 
 '''
@@ -112,8 +113,8 @@ def get_screen(raw_state):
     screen = screen[:, :, slice_range]
     # Convert to float, rescale, convert to torch tensor
     # (this doesn't require a copy)'''
-    screen = np.reshape(raw_state, (40,40,3))
-    screen = np.ascontiguousarray(screen, dtype=np.float32) / 255
+    screen = np.reshape(raw_state, (7,6))
+    screen = np.ascontiguousarray(screen, dtype=np.float32)
     screen = torch.from_numpy(screen)
     # Resize, and add a batch dimension (BCHW)
     return resize(screen).unsqueeze(0).to(device)
@@ -230,7 +231,8 @@ def optimize_model():
         param.grad.data.clamp_(-1, 1)
     optimizer.step()
 
-num_episodes = 300
+num_episodes = 6000
+start_time = time.time()
 for i_episode in range(num_episodes):
     # Initialize the environment and state
     state = env.reset()
@@ -255,6 +257,8 @@ for i_episode in range(num_episodes):
         if done:
             episode_durations.append(t + 1)
             plot_durations()
+            plt.savefig('figure_save.png')
+            print("Time : %.3f s" % (time.time() - start_time))
             break
     # Update the target network, copying all weights and biases in DQN
     if i_episode % TARGET_UPDATE == 0:

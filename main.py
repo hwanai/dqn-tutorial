@@ -57,11 +57,11 @@ class DQN(nn.Module):
 
     def __init__(self, h, w, outputs):
         super(DQN, self).__init__()
-        self.conv1 = nn.Conv2d(1, 16, kernel_size=2, stride=1)
+        self.conv1 = nn.Conv2d(3, 16, kernel_size=5, stride=2)
         self.bn1 = nn.BatchNorm2d(16)
-        self.conv2 = nn.Conv2d(16, 32, kernel_size=2, stride=1)
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=5, stride=2)
         self.bn2 = nn.BatchNorm2d(32)
-        self.conv3 = nn.Conv2d(32, 32, kernel_size=2, stride=1)
+        self.conv3 = nn.Conv2d(32, 32, kernel_size=5, stride=2)
         self.bn3 = nn.BatchNorm2d(32)
 
 
@@ -83,7 +83,7 @@ class DQN(nn.Module):
         return self.head(x.view(x.size(0), -1))
 
 resize = T.Compose([T.ToPILImage(),
-                    T.Resize(6, interpolation=Image.CUBIC),
+                    T.Resize(40, interpolation=Image.CUBIC),
                     T.ToTensor()])
 
 '''
@@ -113,7 +113,7 @@ def get_screen(raw_state):
     screen = screen[:, :, slice_range]
     # Convert to float, rescale, convert to torch tensor
     # (this doesn't require a copy)'''
-    screen = np.reshape(raw_state, (7,6))
+    screen = np.reshape(raw_state, (40,40,3))
     screen = np.ascontiguousarray(screen, dtype=np.float32)
     screen = torch.from_numpy(screen)
     # Resize, and add a batch dimension (BCHW)
